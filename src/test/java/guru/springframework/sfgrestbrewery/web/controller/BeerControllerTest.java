@@ -53,7 +53,7 @@ class BeerControllerTest {
         given(beerService.getById(any(),any())).willReturn(validBeer);
 
         webTestClient.get()
-                .uri("/api/v1/beer/" + uuid)
+                .uri(uriBuilder -> uriBuilder.path("/api/v1/beer/{beerId}").build(uuid))
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
@@ -71,7 +71,7 @@ class BeerControllerTest {
         given(beerService.getByUpc(testUpc)).willReturn(validBeer);
 
         webTestClient.get()
-                .uri("/api/v1/beerUpc/" + testUpc)
+                .uri(uriBuilder -> uriBuilder.path("/api/v1/beerUpc/{upc}").build(testUpc))
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
