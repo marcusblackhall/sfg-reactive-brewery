@@ -20,5 +20,4 @@ public interface BeerRepository extends ReactiveCrudRepository<Beer, Integer> {
 //
 //    Page<Beer> findAllByBeerNameAndBeerStyle(String beerName, BeerStyleEnum beerStyle, Pageable pageable);
 //
-//    Beer findByUpc(String upc);
 }

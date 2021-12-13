@@ -87,8 +87,8 @@ class BeerControllerTest {
         List<BeerDto> validBeerList = List.of(this.validBeer);
         BeerPagedList beerPagedList = new BeerPagedList(validBeerList);
         given(beerService.listBeers("Test beer",BeerStyleEnum.PALE_ALE,
-                PageRequest.of(0,25),false))
-                .willReturn(beerPagedList);
+                PageRequest.of(0,5),false))
+                .willReturn(Mono.just(beerPagedList));
 
 
         webTestClient.get()
