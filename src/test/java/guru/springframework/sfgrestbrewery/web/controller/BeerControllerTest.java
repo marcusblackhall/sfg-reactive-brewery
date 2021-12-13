@@ -15,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.querydsl.QPageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -49,8 +50,8 @@ class BeerControllerTest {
     @Test
     void getBeerById(){
 
-        UUID uuid = UUID.randomUUID();
-        given(beerService.getById(any(),any())).willReturn(validBeer);
+        Integer uuid = 1;;
+        given(beerService.getById(any(),any())).willReturn(Mono.just(validBeer));
 
         webTestClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/api/v1/beer/{beerId}").build(uuid))
@@ -68,7 +69,7 @@ class BeerControllerTest {
     @Test
     void getBeerByUpc(){
         String testUpc = BeerLoader.BEER_1_UPC;
-        given(beerService.getByUpc(testUpc)).willReturn(validBeer);
+        given(beerService.getByUpc(testUpc)).willReturn(Mono.just(validBeer));
 
         webTestClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/api/v1/beerUpc/{upc}").build(testUpc))

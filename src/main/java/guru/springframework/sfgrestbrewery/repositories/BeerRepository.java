@@ -7,11 +7,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 //import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
 
-public interface BeerRepository extends ReactiveCrudRepository<Beer, UUID> {
+public interface BeerRepository extends ReactiveCrudRepository<Beer, Integer> {
+    Mono<Beer> findByUpc(String upc);
 //    Page<Beer> findAllByBeerName(String beerName, Pageable pageable);
 //
 //    Page<Beer> findAllByBeerStyle(BeerStyleEnum beerStyle, Pageable pageable);
