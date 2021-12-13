@@ -8,12 +8,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.netty.http.client.HttpClient;
 
+import java.math.BigDecimal;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -128,7 +131,8 @@ public class WebClientIT {
                 .retrieve().bodyToMono(BeerPagedList.class);
 
 
-     BeerPagedList pagedList = beerPagedListMono.block();      pagedList.getContent().forEach(beerDto -> System.out.println(beerDto.toString()));
+        BeerPagedList pagedList = beerPagedListMono.block();
+        pagedList.getContent().forEach(beerDto -> System.out.println(beerDto.toString()));
         beerPagedListMono.publishOn(Schedulers.parallel()).subscribe(beerPagedList -> {
 
             beerPagedList.getContent().forEach(beerDto -> System.out.println(beerDto.toString()));
@@ -138,4 +142,37 @@ public class WebClientIT {
 
         countDownLatch.await();
     }
+
+    @Test
+    void shoudSaveBeer() throws InterruptedException {
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        BeerDto beerDto = BeerDto.builder()
+                .beerName("My Beer")
+                .upc("8687655555")
+                .price(BigDecimal.valueOf(34.44))
+                .beerStyle("PALE_ALE").build();
+
+        Mono<ResponseEntity<Void>> beerMono = webClient.post()
+                .uri(uriBuilder -> uriBuilder.path("/api/v1/beer")
+
+                        .build())
+                .accept(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(beerDto))
+                .retrieve()
+                .toBodilessEntity();
+
+        beerMono.publishOn(Schedulers.parallel()).subscribe(responseEntity ->
+                {
+                    assertThat(responseEntity.getStatusCode().is2xxSuccessful());
+                    countDownLatch.countDown();
+                }
+        );
+
+        countDownLatch.await(2000, TimeUnit.MILLISECONDS);
+        assertThat(countDownLatch.getCount()).isEqualTo(0);
+
+
+    }
+
 }
