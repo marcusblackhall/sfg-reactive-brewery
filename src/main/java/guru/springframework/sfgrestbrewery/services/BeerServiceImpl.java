@@ -16,7 +16,6 @@ import org.springframework.data.relational.core.query.Query;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.springframework.data.r2dbc.query.Criteria.where;
@@ -37,25 +36,25 @@ public class BeerServiceImpl implements BeerService {
     public Mono<BeerPagedList> listBeers(String beerName, BeerStyleEnum beerStyle, PageRequest pageRequest, Boolean showInventoryOnHand) {
         // strange that the rd Query is not used
         Query query = null;
-        if (!StringUtils.isEmpty(beerName)  && beerStyle != null){
+        if (!StringUtils.isEmpty(beerName) && beerStyle != null) {
             query = Query.query(where("beerName").is(beerName).and("beerStyle").is(beerStyle));
 
-        } else if( !StringUtils.isEmpty(beerName) && beerStyle == null){
+        } else if (!StringUtils.isEmpty(beerName) && beerStyle == null) {
             query = Query.query(where("beerName").is(beerName));
-        } else if(StringUtils.isEmpty(beerName) && beerStyle != null ){
+        } else if (StringUtils.isEmpty(beerName) && beerStyle != null) {
             query = Query.query(where("beerStyle").is(beerStyle));
         } else {
             query = Query.empty();
         }
 
-            return r2dbcEntityTemplate.select(Beer.class)
-                    .matching(query.with(pageRequest))
-                    .all()
-                    .map(beerMapper::beerToBeerDto)
-                    .collect(Collectors.toList())
-                    .map(beers -> {
-                        return new BeerPagedList(beers,PageRequest.of(pageRequest.getPageNumber(),pageRequest.getPageSize()),beers.size());
-                    });
+        return r2dbcEntityTemplate.select(Beer.class)
+                .matching(query.with(pageRequest))
+                .all()
+                .map(beerMapper::beerToBeerDto)
+                .collect(Collectors.toList())
+                .map(beers -> {
+                    return new BeerPagedList(beers, PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize()), beers.size());
+                });
 
     }
 
@@ -78,28 +77,29 @@ public class BeerServiceImpl implements BeerService {
     @Override
     public Mono<BeerDto> saveNewBeer(BeerDto beerDto) {
 //        return beerMapper.beerToBeerDto(beerRepository.save(beerMapper.beerDtoToBeer(beerDto)));
-          return   beerRepository.save(beerMapper.beerDtoToBeer(beerDto)).map(beerMapper::beerToBeerDto);
+        return beerRepository.save(beerMapper.beerDtoToBeer(beerDto)).map(beerMapper::beerToBeerDto);
     }
 
     @Override
-    public BeerDto updateBeer(UUID beerId, BeerDto beerDto) {
-//        Beer beer = beerRepository.findById(beerId).orElseThrow(NotFoundException::new);
-//
-//        beer.setBeerName(beerDto.getBeerName());
-//        beer.setBeerStyle(BeerStyleEnum.PILSNER.valueOf(beerDto.getBeerStyle()));
-//        beer.setPrice(beerDto.getPrice());
-//        beer.setUpc(beerDto.getUpc());
-//
-//        return beerMapper.beerToBeerDto(beerRepository.save(beer));
-        return null;
+    public Mono<BeerDto> updateBeer(Integer beerId, BeerDto beerDto) {
+
+        return beerRepository.findById(0).map(beer -> {
+                    beer.setBeerName(beerDto.getBeerName());
+                    beer.setBeerStyle(BeerStyleEnum.valueOf(beerDto.getBeerStyle()));
+                    beer.setPrice(beerDto.getPrice());
+                    beer.setUpc(beerDto.getUpc());
+                    return beer;
+                }).flatMap(beerRepository::save)
+                .map(beerMapper::beerToBeerDto);
+
+
     }
 
     @Cacheable(cacheNames = "beerUpcCache")
     @Override
     public Mono<BeerDto> getByUpc(String upc) {
 
-       return  beerRepository.findByUpc(upc).map(beerMapper::beerToBeerDto);
-
+        return beerRepository.findByUpc(upc).map(beerMapper::beerToBeerDto);
 
 
     }
