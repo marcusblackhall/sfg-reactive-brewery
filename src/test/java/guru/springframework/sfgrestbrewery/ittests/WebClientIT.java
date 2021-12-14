@@ -71,48 +71,47 @@ public class WebClientIT {
     @Test
     void shouldUpdateBeer() throws InterruptedException {
 
-        CountDownLatch countDownLatch = new CountDownLatch(4);
+        CountDownLatch countDownLatch = new CountDownLatch(3);
 
-        Mono<BeerPagedList> beerPagedListMono = webClient.get().uri("/api/v1/beer")
+        webClient.get().uri("/api/v1/beer")
                 .accept(MediaType.APPLICATION_JSON)
-                .retrieve().bodyToMono(BeerPagedList.class);
+                .retrieve()
+                .bodyToMono(BeerPagedList.class)
+                .publishOn(Schedulers.single())
+                .subscribe(beerPagedList -> {
+                    countDownLatch.countDown();
+                    BeerDto beerDto = beerPagedList.getContent().get(0);
+                    log.info("Going to update beer {} with id {}", beerDto.getBeerName(), beerDto.getId());
+
+                    BeerDto updatePayload = BeerDto.builder().beerName("MyUpdate Beer")
+                            .beerStyle(beerDto.getBeerStyle())
+                            .price(beerDto.getPrice())
+                            .upc(beerDto.getUpc()).build();
+
+                    webClient.put()
+                            .uri(uriBuilder -> uriBuilder.path("/api/v1/beer/{beerId}")
+                                    .build(beerDto.getId()))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(BodyInserters.fromValue(updatePayload))
+                            .retrieve()
+                            .toBodilessEntity()
+                            .flatMap(responseEntity -> {
+                                countDownLatch.countDown();
+                                return webClient.get().uri("/api/v1/beer/" + beerDto.getId())
+                                        .accept(MediaType.APPLICATION_JSON)
+                                        .retrieve().bodyToMono(BeerDto.class);
+
+                            })
+                            .subscribe(savedDto -> {
+                                countDownLatch.countDown();
+                                assertThat(savedDto.getBeerName()).isEqualTo("MyUpdate Beer");
+                                log.info("Beer name is now {}", savedDto.getBeerName());
+                            });
 
 
-        BeerPagedList pagedList = beerPagedListMono.block();
-        beerPagedListMono.publishOn(Schedulers.parallel()).subscribe(beerPagedList -> {
-            countDownLatch.countDown();
+                });
 
-            BeerDto beerDto = beerPagedList.getContent().get(0);
-            log.info("Going to update beer {} with id {}", beerDto.getBeerName(), beerDto.getId());
-
-            BeerDto updatePayload = BeerDto.builder().beerName("MyUpdate Beer")
-                    .beerStyle(beerDto.getBeerStyle())
-                    .price(beerDto.getPrice())
-                    .upc(beerDto.getUpc()).build();
-
-            webClient.put()
-                    .uri(uriBuilder -> uriBuilder.path("/api/v1/beer/{beerId}")
-                            .build(beerDto.getId()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(BodyInserters.fromValue(updatePayload))
-                    .retrieve()
-                    .toBodilessEntity()
-                    .flatMap(responseEntity -> {
-                        countDownLatch.countDown();
-                        return webClient.get().uri("/api/v1/beer/" + beerDto.getId())
-                                .accept(MediaType.APPLICATION_JSON)
-                                .retrieve().bodyToMono(BeerDto.class);
-
-                    })
-                    .subscribe(savedDto -> {
-                        assertThat(savedDto.getBeerName().equals("MyUpdate Beer"));
-                        countDownLatch.countDown();
-                    });
-
-
-        });
-
-        countDownLatch.await(2, TimeUnit.SECONDS);
+        countDownLatch.await(1000, TimeUnit.MILLISECONDS);
         assertThat(countDownLatch.getCount()).isEqualTo(0);
 
 

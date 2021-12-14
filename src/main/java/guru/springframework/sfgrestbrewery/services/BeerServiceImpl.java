@@ -83,7 +83,7 @@ public class BeerServiceImpl implements BeerService {
     @Override
     public Mono<BeerDto> updateBeer(Integer beerId, BeerDto beerDto) {
 
-        return beerRepository.findById(0).map(beer -> {
+        return beerRepository.findById(beerId).map(beer -> {
                     beer.setBeerName(beerDto.getBeerName());
                     beer.setBeerStyle(BeerStyleEnum.valueOf(beerDto.getBeerStyle()));
                     beer.setPrice(beerDto.getPrice());
