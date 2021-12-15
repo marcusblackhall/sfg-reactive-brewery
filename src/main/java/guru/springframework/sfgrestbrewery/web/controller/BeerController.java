@@ -53,6 +53,13 @@ public class BeerController {
         return ResponseEntity.ok(beerList);
     }
 
+    // spring mvc handling
+
+    @ExceptionHandler
+    ResponseEntity<Void> handleNotFound(NotFoundException notFoundException){
+        return ResponseEntity.notFound().build();
+    }
+
     @GetMapping("beer/{beerId}")
     public ResponseEntity<Mono<BeerDto>> getBeerById(@PathVariable("beerId") Integer beerId,
                                                      @RequestParam(value = "showInventoryOnHand", required = false) Boolean showInventoryOnHand) {
@@ -60,7 +67,15 @@ public class BeerController {
             showInventoryOnHand = false;
         }
 
-        return new ResponseEntity<>(beerService.getById(beerId, showInventoryOnHand), HttpStatus.OK);
+        return  ResponseEntity.ok(beerService.getById(beerId, showInventoryOnHand).defaultIfEmpty(
+                BeerDto.builder().build())
+                .doOnNext(beerDto -> {
+                    if (beerDto.getId() == null){
+                        throw new NotFoundException();
+                    }
+
+                })
+        );
     }
 
     @GetMapping("beerUpc/{upc}")
