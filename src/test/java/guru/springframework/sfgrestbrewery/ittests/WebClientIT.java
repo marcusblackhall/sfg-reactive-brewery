@@ -3,15 +3,18 @@ package guru.springframework.sfgrestbrewery.ittests;
 import guru.springframework.sfgrestbrewery.bootstrap.BeerLoader;
 import guru.springframework.sfgrestbrewery.web.model.BeerDto;
 import guru.springframework.sfgrestbrewery.web.model.BeerPagedList;
+import guru.springframework.sfgrestbrewery.web.model.BeerStyleEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.netty.http.client.HttpClient;
@@ -20,6 +23,7 @@ import java.math.BigDecimal;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static guru.springframework.sfgrestbrewery.bootstrap.BeerLoader.BEER_8_UPC;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -103,15 +107,52 @@ public class WebClientIT {
 
                             })
                             .subscribe(savedDto -> {
-                                countDownLatch.countDown();
                                 assertThat(savedDto.getBeerName()).isEqualTo("MyUpdate Beer");
                                 log.info("Beer name is now {}", savedDto.getBeerName());
+                                countDownLatch.countDown();
                             });
 
 
                 });
 
-        countDownLatch.await(1000, TimeUnit.MILLISECONDS);
+        countDownLatch.await(3, TimeUnit.SECONDS);
+        assertThat(countDownLatch.getCount()).isEqualTo(0);
+
+
+    }
+
+    @Test
+    void testUpdateBeerNotFound() throws InterruptedException {
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        BeerDto updatePayload = BeerDto.builder().beerName("MyUpdate Beer")
+                .beerStyle("PALE_ALE")
+                .price(new BigDecimal("9.99"))
+                .upc(BEER_8_UPC).build();
+
+// put with an id that doesnt exist
+        webClient.put()
+                .uri(uriBuilder -> uriBuilder.path("/api/v1/beer/{beerId}")
+                        .build(200))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(updatePayload))
+                .retrieve()
+                .toBodilessEntity()
+
+                .subscribe(savedDto -> {
+                        log.info("Status code here is {}",savedDto.getStatusCode());
+
+                }, throwable -> {
+
+                    if (throwable instanceof WebClientResponseException.NotFound){
+                        WebClientResponseException exception = (WebClientResponseException) throwable;
+                        if (exception.getStatusCode().equals(HttpStatus.NOT_FOUND)){
+                            countDownLatch.countDown();
+                        }
+                    }
+                });
+
+        countDownLatch.await(3,TimeUnit.SECONDS);
         assertThat(countDownLatch.getCount()).isEqualTo(0);
 
 
@@ -223,5 +264,7 @@ public class WebClientIT {
 
 
     }
+
+
 
 }
