@@ -4,6 +4,7 @@ import guru.springframework.sfgrestbrewery.web.model.BeerDto;
 import guru.springframework.sfgrestbrewery.web.model.BeerPagedList;
 import guru.springframework.sfgrestbrewery.web.model.BeerStyleEnum;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;
@@ -18,9 +19,13 @@ public interface BeerService {
 
     Mono<BeerDto> saveNewBeer(BeerDto beerDto);
 
+    Mono<BeerDto> saveNewBeerMono (Mono<BeerDto> beerDto);
+
     Mono<BeerDto> updateBeer(Integer beerId, BeerDto beerDto);
 
     Mono<BeerDto> getByUpc(String upc);
 
-    void deleteBeerById(Integer beerId);
+    void    deleteBeerById(Integer beerId);
+
+    Mono<Void> deleteReactiveBeer(Integer beerId);
 }

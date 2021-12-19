@@ -114,6 +114,8 @@ public class BeerController {
         return ResponseEntity.notFound().build();
     }
 
+
+
     @DeleteMapping("beer/{beerId}")
     public ResponseEntity<Void> deleteBeerById(@PathVariable("beerId") Integer beerId) {
 
